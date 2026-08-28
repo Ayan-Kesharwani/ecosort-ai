@@ -1,0 +1,1 @@
+{"version":3,"file":"trashStats.d.ts","sourceRoot":"","sources":["../../../src/generated/types/trashStats.ts"],"names":[],"mappings":"AAAA;;;;;;GAMG;AACH,OAAO,KAAK,EAAE,aAAa,EAAE,MAAM,iBAAiB,CAAC;AAErD,MAAM,WAAW,UAAU;IACzB,aAAa,EAAE,MAAM,CAAC;IACtB,kBAAkB,EAAE,MAAM,CAAC;IAC3B,oBAAoB,EAAE,MAAM,CAAC;IAC7B,iBAAiB,EAAE,aAAa,EAAE,CAAC;CACpC"}

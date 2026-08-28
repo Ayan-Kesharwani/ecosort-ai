@@ -1,0 +1,279 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: TrashScan AI API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: trash
+    description: Trash detection and classification operations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /trash/analyze:
+    post:
+      operationId: analyzeTrash
+      tags: [trash]
+      summary: Analyze trash image
+      description: Analyzes an image for trash items, classifies them, and provides handling guidance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TrashAnalysisInput"
+      responses:
+        "200":
+          description: Trash analysis result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrashAnalysisResult"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /trash/history:
+    get:
+      operationId: getTrashHistory
+      tags: [trash]
+      summary: Get analysis history
+      description: Returns recent trash analysis sessions
+      responses:
+        "200":
+          description: List of past analyses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TrashAnalysisSummary"
+
+  /trash/history/{id}:
+    get:
+      operationId: getTrashAnalysis
+      tags: [trash]
+      summary: Get a specific analysis
+      description: Returns full details of a specific trash analysis
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Full analysis details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrashAnalysisResult"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /trash/stats:
+    get:
+      operationId: getTrashStats
+      tags: [trash]
+      summary: Get trash statistics
+      description: Returns aggregate statistics across all analyses
+      responses:
+        "200":
+          description: Aggregate statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrashStats"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    TrashAnalysisInput:
+      type: object
+      required:
+        - imageBase64
+      properties:
+        imageBase64:
+          type: string
+          description: Base64-encoded image data (with or without data URI prefix)
+        mimeType:
+          type: string
+          description: MIME type of the image (e.g. image/jpeg)
+          default: image/jpeg
+
+    TrashItem:
+      type: object
+      required:
+        - name
+        - category
+        - recyclable
+        - handlingInstructions
+        - confidence
+      properties:
+        name:
+          type: string
+          description: Name/label of the detected trash item
+        category:
+          type: string
+          description: Category of trash (plastic, metal, paper, glass, organic, electronic, hazardous, other)
+        recyclable:
+          type: boolean
+          description: Whether this item is recyclable
+        handlingInstructions:
+          type: string
+          description: How to handle/prepare this item for disposal
+        confidence:
+          type: number
+          description: Detection confidence 0-1
+        zoneHint:
+          type: ["string", "null"]
+          description: Location hint in the pile if applicable (e.g. top-left, center)
+        binCategory:
+          type: string
+          description: Which smart bin container this belongs in
+        boundingBox:
+          type: ["object", "null"]
+          description: Detected item location as percentages of the image dimensions
+          properties:
+            x:
+              type: number
+            y:
+              type: number
+            width:
+              type: number
+            height:
+              type: number
+
+    TrashAnalysisResult:
+      type: object
+      required:
+        - id
+        - items
+        - summary
+        - recyclableZones
+        - nonRecyclableZones
+        - overallRecyclablePercent
+        - createdAt
+      properties:
+        id:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrashItem"
+        summary:
+          type: string
+          description: Plain-language summary of the analysis
+        recyclableZones:
+          type: string
+          description: Description of recyclable areas in the image
+        nonRecyclableZones:
+          type: string
+          description: Description of non-recyclable areas in the image
+        overallRecyclablePercent:
+          type: number
+          description: Estimated percentage of recyclable waste
+        cleaningDriveGuide:
+          type: ["string", "null"]
+          description: Guidance for cleaning drive workers
+        smartBinGuide:
+          type: ["string", "null"]
+          description: Guidance for smart bin segregation
+        imageBase64:
+          type: ["string", "null"]
+          description: The original image (for display)
+        createdAt:
+          type: string
+
+    TrashAnalysisSummary:
+      type: object
+      required:
+        - id
+        - itemCount
+        - overallRecyclablePercent
+        - createdAt
+      properties:
+        id:
+          type: integer
+        itemCount:
+          type: integer
+        overallRecyclablePercent:
+          type: number
+        summary:
+          type: string
+        createdAt:
+          type: string
+
+    TrashStats:
+      type: object
+      required:
+        - totalAnalyses
+        - totalItemsDetected
+        - avgRecyclablePercent
+        - categoryBreakdown
+      properties:
+        totalAnalyses:
+          type: integer
+        totalItemsDetected:
+          type: integer
+        avgRecyclablePercent:
+          type: number
+        categoryBreakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryCount"
+
+    CategoryCount:
+      type: object
+      required:
+        - category
+        - count
+      properties:
+        category:
+          type: string
+        count:
+          type: integer
